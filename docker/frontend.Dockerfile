@@ -1,18 +1,23 @@
-FROM node:20-alpine
+FROM node:20-alpine AS build
 
 WORKDIR /app/frontend
-
-# Install dependencies first for better caching
-COPY frontend/package*.json ./
-RUN npm install
-
-# Copy the rest of the source
-COPY frontend/. .
 
 # Ensure Vite can talk to the backend container by default
 ARG VITE_API_URL=http://backend:8000
 ENV VITE_API_URL=${VITE_API_URL}
 
-EXPOSE 5173
+# Install dependencies first for better caching
+COPY frontend/package*.json ./
+RUN npm ci
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+# Copy the rest of the source
+COPY frontend/. .
+
+RUN npm run build
+
+FROM nginx:1.27-alpine AS runtime
+
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
+
+EXPOSE 80
