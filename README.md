@@ -20,7 +20,16 @@ npm install
 npm run dev
 ```
 
-Open the printed Vite URL (defaults to `http://localhost:5173`) in a browser.
+Open the printed Vite URL (defaults to `http://localhost:5173`) in a browser.  
+If you need to access the dev server from another device or via Docker, run `npm run dev -- --host 0.0.0.0` and forward port 5173.
+
+## Run the Frontend via Docker
+
+```bash
+docker compose up --build frontend
+```
+
+This launches the Node-based Vite dev server inside the container with `npm run dev -- --host 0.0.0.0 --port 5173`. The compose file maps container port `5173` to the same port on your host, so you can open `http://localhost:5173` exactly as if you were running Vite locally. The container sets `VITE_API_URL=http://backend:8000`, allowing it to call the FastAPI service defined in the same compose stack.
 
 ## Usage
 
