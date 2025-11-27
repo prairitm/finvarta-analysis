@@ -681,11 +681,19 @@ if FastAPI and BaseModel:
             "http://localhost:5173",
             "http://127.0.0.1:5173",
         ]
+        extra_origins = os.getenv("ALLOWED_CORS_ORIGINS", "")
+        if extra_origins:
+            allowed_origins.extend(
+                origin.strip()
+                for origin in extra_origins.split(",")
+                if origin.strip()
+            )
         app.add_middleware(
             CORSMiddleware,
             allow_origins=allowed_origins,
             allow_methods=["*"],
             allow_headers=["*"],
+            allow_credentials=True,
         )
 
     @app.post("/analyze")

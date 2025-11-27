@@ -29,7 +29,19 @@ If you need to access the dev server from another device or via Docker, run `npm
 docker compose up --build frontend
 ```
 
-This launches the Node-based Vite dev server inside the container with `npm run dev -- --host 0.0.0.0 --port 5173`. The compose file maps container port `5173` to the same port on your host, so you can open `http://localhost:5173` exactly as if you were running Vite locally. The container sets `VITE_API_URL=http://backend:8000`, allowing it to call the FastAPI service defined in the same compose stack.
+This launches the Node-based Vite dev server inside the container with `npm run dev -- --host 0.0.0.0 --port 5173`. The compose file maps container port `5173` to the same port on your host, so you can open `http://localhost:5173` exactly as if you were running Vite locally. By default the container uses `VITE_API_URL=http://backend:8000`, which works when both services run inside the same Docker network. If you need the frontend to call a backend running elsewhere (e.g., Raspberry Pi IP), set `VITE_API_URL` before running `docker compose up`, for example:
+
+```bash
+export VITE_API_URL=http://192.168.1.192:8000
+docker compose up --build frontend
+```
+
+If the frontend is served from a non-localhost origin (e.g., `http://192.168.1.198:5173`), make sure the backend whitelists that origin by exporting `ALLOWED_CORS_ORIGINS` before starting it:
+
+```bash
+export ALLOWED_CORS_ORIGINS=http://192.168.1.198:5173,http://192.168.1.192:5173
+docker compose up --build backend
+```
 
 ## Usage
 
