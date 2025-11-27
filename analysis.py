@@ -676,15 +676,37 @@ if FastAPI and BaseModel:
 
     app = FastAPI(title="Finvarta Fundamental Analysis API")
 
+    # Add custom CORS middleware that explicitly sets headers
+    @app.middleware("http")
+    async def add_cors_headers(request, call_next):
+        response = await call_next(request)
+        origin = request.headers.get("origin", "*")
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "false"
+        return response
+
     if CORSMiddleware:
+        # Use regex pattern to allow all origins (more reliable than ["*"])
+        import re
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origin_regex=r".*",
             allow_credentials=False,
             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
             allow_headers=["*"],
             expose_headers=["*"],
         )
+
+    # Explicit OPTIONS handler for all routes
+    @app.options("/{full_path:path}")
+    async def options_handler(full_path: str):
+        return {
+            "status": "ok",
+            "message": "CORS preflight successful"
+        }
 
     @app.post("/analyze")
     def analyze_via_api(payload: AnalysisRequest):

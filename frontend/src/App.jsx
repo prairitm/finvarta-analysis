@@ -3,7 +3,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import './App.css'
 
-const API_URL = 'http://localhost:8000/analyze'
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/analyze'
 
 const humanizeKey = (key) =>
   key
