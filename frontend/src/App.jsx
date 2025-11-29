@@ -71,11 +71,18 @@ function App() {
     setMeta({})
 
     try {
+      // Create an AbortController for timeout handling
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes timeout
+      
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ company: company.trim() }),
+        signal: controller.signal,
       })
+      
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const message = await response.text()
@@ -89,7 +96,13 @@ function App() {
         setMeta(rest)
       }
     } catch (err) {
-      setError(err.message || 'Something went wrong')
+      if (err.name === 'AbortError') {
+        setError('Request timed out. The analysis is taking longer than expected. Please try again or check the backend logs.')
+      } else if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
+        setError('Network error: Could not connect to backend. Make sure the backend is running.')
+      } else {
+        setError(err.message || 'Something went wrong')
+      }
     } finally {
       setIsLoading(false)
     }

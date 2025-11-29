@@ -387,9 +387,14 @@ def analyze_with_llm(
     """
     client = OpenAI(
         api_key=api_key,
-        base_url=base_url
-    ) if base_url else OpenAI(api_key=api_key)
+        base_url=base_url,
+        timeout=300.0  # 5 minutes timeout for LLM calls
+    ) if base_url else OpenAI(
+        api_key=api_key,
+        timeout=300.0  # 5 minutes timeout for LLM calls
+    )
     
+    print("Sending request to LLM...", file=sys.stderr)
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -397,6 +402,7 @@ def analyze_with_llm(
             {"role": "user", "content": financial_data}
         ]
     )
+    print("Received response from LLM", file=sys.stderr)
     
     return response.choices[0].message.content
 
