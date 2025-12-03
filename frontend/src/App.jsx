@@ -1,62 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import './App.css'
-
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/analyze'
-
-const humanizeKey = (key) =>
-  key
-    .replace(/[_-]/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-
-const stringifyValue = (value) => {
-  if (value === null || value === undefined) return ''
-  if (typeof value === 'string') return value
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
-  if (Array.isArray(value)) {
-    return value
-      .map((item, index) => `• ${Array.isArray(value) ? '' : ''}${stringifyValue(item) || `Item ${index + 1}`}`)
-      .join('\n')
-  }
-  if (typeof value === 'object') {
-    return Object.entries(value)
-      .map(([innerKey, innerValue]) => `${humanizeKey(innerKey)}: ${stringifyValue(innerValue)}`)
-      .join('\n')
-  }
-  return ''
-}
-
-const toSections = (payload) => {
-  if (!payload) return []
-  if (typeof payload === 'string') {
-    return payload
-      .split(/\n{2,}/)
-      .map((block) => block.trim())
-      .filter(Boolean)
-      .map((block) => ({ title: null, content: block }))
-  }
-  if (Array.isArray(payload)) {
-    return payload.map((entry, index) => ({
-      title: `Insight ${index + 1}`,
-      content: stringifyValue(entry),
-    }))
-  }
-  if (typeof payload === 'object') {
-    return Object.entries(payload).map(([key, value]) => ({
-      title: humanizeKey(key),
-      content: stringifyValue(value),
-    }))
-  }
-  return [{ title: null, content: String(payload) }]
-}
+import { API_URL, PROMPTS_URL, REQUEST_TIMEOUT_MS, DEFAULT_PROMPT } from './constants'
+import { toSections } from './utils/formatting'
 
 function App() {
   const [company, setCompany] = useState('')
+  const [promptName, setPromptName] = useState(DEFAULT_PROMPT)
+  const [availablePrompts, setAvailablePrompts] = useState([])
   const [sections, setSections] = useState([])
   const [meta, setMeta] = useState({})
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Fetch available prompts on component mount
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const response = await fetch(PROMPTS_URL)
+        if (response.ok) {
+          const data = await response.json()
+          setAvailablePrompts(data.prompts || [])
+          // Set default prompt if available
+          if (data.default && !promptName) {
+            setPromptName(data.default)
+          }
+        }
+      } catch (err) {
+        // If fetching prompts fails, use hardcoded defaults
+        console.warn('Failed to fetch prompts, using defaults:', err)
+        setAvailablePrompts([DEFAULT_PROMPT, 'warren-buffet'])
+      }
+    }
+    fetchPrompts()
+  }, [])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -73,12 +51,15 @@ function App() {
     try {
       // Create an AbortController for timeout handling
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 300000) // 5 minutes timeout
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
       
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company: company.trim() }),
+        body: JSON.stringify({
+          company: company.trim(),
+          prompt_name: promptName,
+        }),
         signal: controller.signal,
       })
       
@@ -122,6 +103,26 @@ function App() {
         </div>
 
         <form className="form" onSubmit={handleSubmit}>
+          <label htmlFor="prompt">Analysis Style</label>
+          <select
+            id="prompt"
+            value={promptName}
+            onChange={(event) => setPromptName(event.target.value)}
+            disabled={isLoading}
+          >
+            {availablePrompts.length > 0 ? (
+              availablePrompts.map((prompt) => (
+                <option key={prompt} value={prompt}>
+                  {prompt.replace(/-/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())}
+                </option>
+              ))
+            ) : (
+              <option value={DEFAULT_PROMPT}>
+                {DEFAULT_PROMPT.replace(/-/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())}
+              </option>
+            )}
+          </select>
+
           <label htmlFor="company">Company name</label>
           <div className="input-row">
             <input

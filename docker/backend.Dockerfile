@@ -8,7 +8,20 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy all Python modules
 COPY analysis.py .
+COPY analysis_service.py .
+COPY config.py .
+COPY constants.py .
+COPY html_extractor.py .
+COPY llm_client.py .
+COPY screener_client.py .
+COPY prompts/ ./prompts/
+COPY tools/ ./tools/
+COPY cache/ ./cache/
+
+# Create cache directory with write permissions
+RUN mkdir -p /app/cache && chmod 777 /app/cache
 
 EXPOSE 8000
 
