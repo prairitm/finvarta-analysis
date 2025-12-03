@@ -99,7 +99,7 @@ function App() {
               Submit a company name to run the fundamental analysis pipeline.
             </p>
           </div>
-          <div className="badge">FastAPI · React</div>
+          {/* <div className="badge">FastAPI · React</div> */}
         </div>
 
         <form className="form" onSubmit={handleSubmit}>
